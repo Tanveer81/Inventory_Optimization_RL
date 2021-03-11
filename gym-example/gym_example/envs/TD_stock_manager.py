@@ -3,10 +3,11 @@ import random
 from abc import ABC
 import numpy as np
 import gym
+import pandas as pd
 
 class StockManager(gym.Env, ABC):
 
-    def __init__(self, hist_data, mat_info, random_reset, sinusoidal_demand=False,
+    def __init__(self, hist_data=None, mat_info=None, random_reset=False, sinusoidal_demand=False,
                  demand_satisfaction=False, past_demand=3, sine_type=3, noisy_demand=False):
 
         super(StockManager, self).__init__()
@@ -15,8 +16,10 @@ class StockManager(gym.Env, ABC):
         self.past_demand = past_demand
         self.demand_sat = demand_satisfaction
         self.sinusoidal_demand = sinusoidal_demand
-        self.history = hist_data
-        self.mat_info = mat_info
+        # self.history = hist_data
+        # self.mat_info = mat_info
+        mat_info = self.mat_info = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
+        hist_data = self.history = pd.read_csv("Data/Preprocessing/train_q115.csv")
         self.random_reset = random_reset
 
         self.reorder = mat_info.loc[hist_data.columns, 'Order_Volume'].values
@@ -37,6 +40,7 @@ class StockManager(gym.Env, ABC):
 
         # initialize current Stock Level (stock_level) : can be randomized
         self.stock_level = mat_info.loc[hist_data.columns, 'Order_Volume'].values
+        self.time_step = 0
 
         # define observation space (currently for only one material)
         '''
@@ -47,10 +51,8 @@ class StockManager(gym.Env, ABC):
             previous days demand
             previous two days' demand
         '''
-        list1 = [self.storage_cap[0], self.storage_cap[0], 1]
-        list2 = [self.storage_cap[0]] * self.past_demand
-        self.observation_space = gym.spaces.Box(low=np.array([0]*(self.past_demand + 3)),
-                                                high=np.array(list1+list2),
+        self.observation_space = gym.spaces.Box(low=np.array([[float('-inf')]*(self.past_demand + 3)]),
+                                                high=np.array([[float('inf')]*(self.past_demand + 3)]),
                                                 dtype=np.float32)
 
         # define action space (currently for only one material)
@@ -64,7 +66,7 @@ class StockManager(gym.Env, ABC):
         :param actions: policy, decides whether to place reorder or not.
         :return: None
         """
-
+        actions = [actions] #TODO: Hack for compatibility, change if possible
         for i in range(len(actions)):
 
             if actions[i] == 1:
@@ -96,7 +98,7 @@ class StockManager(gym.Env, ABC):
                                                  + random.randint(45000, 50000) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1)), 0), 0])]
 
 
-    def observe_new_demand(self, time_step):
+    def observe_new_demand(self):
         """
         Register daily demand
         Maintain demand history of past 7 days
@@ -105,16 +107,17 @@ class StockManager(gym.Env, ABC):
         :return: None
         """
         if self.sinusoidal_demand:
-            self.current_demand = self.get_sinusoidal_demand(time_step, self.sine_type)
+            self.current_demand = self.get_sinusoidal_demand(self.time_step, self.sine_type)
         else:
             if self.noisy_demand:
-                self.current_demand = list(self.history.loc[time_step] + random.randint(100, 9000) * random.randint(0, 1))
+                self.current_demand = list(self.history.loc[self.time_step] + random.randint(100, 9000) * random.randint(0, 1))
             else:
-                self.current_demand = list(self.history.loc[time_step])
+                self.current_demand = list(self.history.loc[self.time_step])
         # pop the first column (oldest history)
         self.demand_history = self.demand_history[:, 1:]
         # add the new demand at the end (latest history)
         self.demand_history = np.c_[self.demand_history, self.current_demand]
+        self.time_step += 1
 
     def update_stock_level(self):
         """
@@ -185,7 +188,7 @@ class StockManager(gym.Env, ABC):
 
         return rewards
 
-    def step(self, actions, time_step):
+    def step(self, actions):
         """
         Execute one time step within the environment
         :param self:
@@ -198,13 +201,17 @@ class StockManager(gym.Env, ABC):
         """
 
         self.observe_new_action(actions)
-        self.observe_new_demand(time_step)
+        self.observe_new_demand()
         self.update_stock_level()
 
         rewards = self.define_new_reward()
         new_state = self.define_new_state()
-
-        return new_state, rewards, {}
+        if self.time_step == 1750:
+            done = 1
+            self.time_step = 0
+        else:
+            done = 0
+        return new_state, rewards[0], done, {}
 
     def reset(self):
         """
