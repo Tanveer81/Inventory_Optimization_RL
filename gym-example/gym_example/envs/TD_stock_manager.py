@@ -5,10 +5,12 @@ import numpy as np
 import gym
 import pandas as pd
 
+
 class StockManager(gym.Env, ABC):
 
     def __init__(self, hist_data=None, mat_info=None, random_reset=False, sinusoidal_demand=False,
-                 demand_satisfaction=False, past_demand=3, sine_type=3, noisy_demand=False):
+                 demand_satisfaction=False, past_demand=3, sine_type=3, noisy_demand=False,
+                 test=False, logger=None):
 
         super(StockManager, self).__init__()
         self.noisy_demand = noisy_demand
@@ -16,10 +18,16 @@ class StockManager(gym.Env, ABC):
         self.past_demand = past_demand
         self.demand_sat = demand_satisfaction
         self.sinusoidal_demand = sinusoidal_demand
-        # self.history = hist_data
-        # self.mat_info = mat_info
-        mat_info = self.mat_info = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
-        hist_data = self.history = pd.read_csv("Data/Preprocessing/train_q115.csv")
+        if mat_info is None:
+            mat_info = self.mat_info = pd.read_csv("Data/Material_Information_q115.csv", sep=";",
+                                                   index_col="Material")
+        else:
+            self.mat_info = mat_info
+        if hist_data is None:
+            hist_data = self.history = pd.read_csv("Data/Preprocessing/train_q115.csv")
+        else:
+            self.history = hist_data
+
         self.random_reset = random_reset
 
         self.reorder = mat_info.loc[hist_data.columns, 'Order_Volume'].values
@@ -41,6 +49,9 @@ class StockManager(gym.Env, ABC):
         # initialize current Stock Level (stock_level) : can be randomized
         self.stock_level = mat_info.loc[hist_data.columns, 'Order_Volume'].values
         self.time_step = 0
+        self.reward = 0
+        self.test = test
+        self.logger = logger
 
         # define observation space (currently for only one material)
         '''
@@ -51,9 +62,10 @@ class StockManager(gym.Env, ABC):
             previous days demand
             previous two days' demand
         '''
-        self.observation_space = gym.spaces.Box(low=np.array([[float('-inf')]*(self.past_demand + 3)]),
-                                                high=np.array([[float('inf')]*(self.past_demand + 3)]),
-                                                dtype=np.float32)
+        self.observation_space = gym.spaces.Box(
+            low=np.array([[float('-inf')] * (self.past_demand + 3)]),
+            high=np.array([[float('inf')] * (self.past_demand + 3)]),
+            dtype=np.float32)
 
         # define action space (currently for only one material)
         self.action_space = gym.spaces.Discrete(2)
@@ -66,7 +78,7 @@ class StockManager(gym.Env, ABC):
         :param actions: policy, decides whether to place reorder or not.
         :return: None
         """
-        actions = [actions] #TODO: Hack for compatibility, change if possible
+        actions = [actions]  # TODO: Hack for compatibility, change if possible
         for i in range(len(actions)):
 
             if actions[i] == 1:
@@ -74,29 +86,43 @@ class StockManager(gym.Env, ABC):
                 #     continue
                 self.pending_actions[i].append(self.delivery_time[i])
 
-    
     def get_sinusoidal_demand(self, timestep, sine_type=3):
-        if sine_type==1:
+        if sine_type == 1:
             dmax = 60000
-            return [math.floor(dmax/2 * math.sin(6*math.pi*timestep) + dmax/2 + random.randint(0, 50000))]
-        elif sine_type==2:
+            return [math.floor(
+                dmax / 2 * math.sin(6 * math.pi * timestep) + dmax / 2 + random.randint(0, 50000))]
+        elif sine_type == 2:
             dmax = 40000
-            return [random.choice([max(math.floor(dmax/3 * math.sin(6*math.pi*timestep)
-                                       + dmax/3 * math.sin(24*math.pi*timestep)
-                                       + dmax/3 * math.sin(183*math.pi*timestep)
-                                       + dmax/2 + random.randint(0, 40000)*random.randint(0, 1)), 0), 0])]
-        elif sine_type==3:
+            return [random.choice([max(math.floor(dmax / 3 * math.sin(6 * math.pi * timestep)
+                                                  + dmax / 3 * math.sin(24 * math.pi * timestep)
+                                                  + dmax / 3 * math.sin(183 * math.pi * timestep)
+                                                  + dmax / 2 + random.randint(0,
+                                                                              40000) * random.randint(
+                0, 1)), 0), 0])]
+        elif sine_type == 3:
             dmax = 5000
             return [random.choice([max(math.floor(dmax / 2 * math.sin(6 * math.pi * timestep)
-                                                 + dmax / 2 * math.sin(24 * math.pi * timestep)
-                                                 + dmax / 2 * math.sin(180 * math.pi * timestep)
-                                                 + 3 * dmax / 4
-                                                 + random.randint(8000, 9000) * random.randint(0, 1)
-                                                 + random.randint(10000, 12000) * random.randint(0, 1) * random.randint(0, 1)
-                                                 + random.randint(15000, 20000) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1)
-                                                 + random.randint(30000, 35000) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1)
-                                                 + random.randint(45000, 50000) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1)), 0), 0])]
-
+                                                  + dmax / 2 * math.sin(24 * math.pi * timestep)
+                                                  + dmax / 2 * math.sin(180 * math.pi * timestep)
+                                                  + 3 * dmax / 4
+                                                  + random.randint(8000, 9000) * random.randint(0,
+                                                                                                1)
+                                                  + random.randint(10000, 12000) * random.randint(0,
+                                                                                                  1) * random.randint(
+                0, 1)
+                                                  + random.randint(15000, 20000) * random.randint(0,
+                                                                                                  1) * random.randint(
+                0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0, 1)
+                                                  + random.randint(30000, 35000) * random.randint(0,
+                                                                                                  1) * random.randint(
+                0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0,
+                                                                                     1) * random.randint(
+                0, 1) * random.randint(0, 1)
+                                                  + random.randint(45000, 50000) * random.randint(0,
+                                                                                                  1) * random.randint(
+                0, 1) * random.randint(0, 1) * random.randint(0, 1) * random.randint(0,
+                                                                                     1) * random.randint(
+                0, 1) * random.randint(0, 1)), 0), 0])]
 
     def observe_new_demand(self):
         """
@@ -110,7 +136,9 @@ class StockManager(gym.Env, ABC):
             self.current_demand = self.get_sinusoidal_demand(self.time_step, self.sine_type)
         else:
             if self.noisy_demand:
-                self.current_demand = list(self.history.loc[self.time_step] + random.randint(100, 9000) * random.randint(0, 1))
+                self.current_demand = list(
+                    self.history.loc[self.time_step] + random.randint(100, 9000) * random.randint(0,
+                                                                                                  1))
             else:
                 self.current_demand = list(self.history.loc[self.time_step])
         # pop the first column (oldest history)
@@ -148,8 +176,8 @@ class StockManager(gym.Env, ABC):
                         self.stock_level[i] = self.stock_level[i] + self.reorder[i]
 
             self.pending_actions[i] = [x for x in self.pending_actions[i] if x != 0]
-            self.days_to_next_reorder[i] = self.pending_actions[i][0]/self.delivery_time[i] \
-                if len(self.pending_actions[i])!= 0 \
+            self.days_to_next_reorder[i] = self.pending_actions[i][0] / self.delivery_time[i] \
+                if len(self.pending_actions[i]) != 0 \
                 else 0
 
         # register demand: today's demand
@@ -206,11 +234,14 @@ class StockManager(gym.Env, ABC):
 
         rewards = self.define_new_reward()
         new_state = self.define_new_state()
-        if self.time_step == 1750:
+
+        if self.time_step == self.history.size:
             done = 1
             self.time_step = 0
         else:
             done = 0
+
+        self.reward = rewards[0]
         return new_state, rewards[0], done, {}
 
     def reset(self):
@@ -232,3 +263,16 @@ class StockManager(gym.Env, ABC):
             self.stock_level = self.mat_info.loc[self.history.columns, 'Order_Volume'].values
 
         return self.define_new_state()
+
+    def render(self, param='none'):
+        if self.logger and self.test:
+            print(self.time_step, self.stock_level[0], self.effective_action[0], self.reward)
+            self.logger.add_scalar(
+                'stock_level', self.stock_level[0], self.time_step
+            )
+            self.logger.add_scalar(
+                'effective_action', self.effective_action[0], self.time_step
+            )
+            self.logger.add_scalar(
+                'reward', self.reward, self.time_step
+            )
