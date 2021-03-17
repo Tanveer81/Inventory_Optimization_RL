@@ -16,7 +16,7 @@ import gym_example
 def get_args_parser():
     parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
 
-    parser.add_argument('--experiment_name', default='dqn_demo_2', type=str)
+    parser.add_argument('--experiment_name', default='dqn_demo', type=str)
     parser.add_argument('--num_episodes', default=5000, type=int)
     parser.add_argument('--seed', default=5214, type=int)
     parser.add_argument('--output_dir', default='output',
@@ -46,6 +46,7 @@ def get_args_parser():
     parser.add_argument('--learn_every', default=4, type=int)
     parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--buffer_size', default=int(1e7), type=int)
+    parser.add_argument('--tau', default=1e-3, type=float)
 
     return parser
 
@@ -153,7 +154,7 @@ if __name__ == '__main__':
     test_env = gym.make("stockManager-v0", **test_config)
 
     # if gpu is to be used
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'device:{device}')
     # Get number of actions from gym action space
     # n_actions = env.action_space.n
@@ -183,7 +184,7 @@ if __name__ == '__main__':
         "batch_size": args.batch_size,
         "gamma": args.gamma,
         "learning_rate": args.learning_rate,
-        "tau": 1e-3,
+        "tau": args.tau,
         "learn_every": args.learn_every,
         "hard_update_every": args.target_update
     }
@@ -201,8 +202,6 @@ if __name__ == '__main__':
         opt_soft_update=False,
         opt_ddqn=False)
 
-
-
     e = CustomGymEnvironment(env=env,
                              algorithm=dqn,
                              seed=args.seed,
@@ -210,8 +209,8 @@ if __name__ == '__main__':
                              gifs_recorder=None)
     e.train(num_episodes=args.num_episodes, max_t=None, add_noise=True,
             scores_window_size=100, save_every=1)
-    print('\ntest\n')
 
+    print('\ntest\n')
     e_test = CustomGymEnvironment(env=test_env,
                                   algorithm=dqn,
                                   seed=args.seed,
