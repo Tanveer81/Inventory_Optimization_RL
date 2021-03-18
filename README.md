@@ -16,6 +16,11 @@ pip install -e gym-example
 python sample.py
 ```
 
+Inside gym_example folder
+```
+pip install -e .
+```
+
 To run Ray RLlib to train a policy based on this environment:
 
 ```
