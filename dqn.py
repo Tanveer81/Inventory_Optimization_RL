@@ -26,7 +26,7 @@ def get_args_parser():
     parser.add_argument('--eps_start', default=0.9, type=float)
     parser.add_argument('--eps_end', default=0.05, type=float)
     parser.add_argument('--eps_decay', default=200, type=int)
-    parser.add_argument('--target_update', default=1000, type=int)
+    parser.add_argument('--target_update', default=10, type=int)
     parser.add_argument('--learning_rate', default=2.5e-4, type=float)
     parser.add_argument('--discount_factor', default=0.99, type=float)
     parser.add_argument('--epsilon', default=0.1, type=float)
@@ -47,6 +47,8 @@ def get_args_parser():
     parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--buffer_size', default=int(1e7), type=int)
     parser.add_argument('--tau', default=1e-3, type=float)
+    parser.add_argument('--opt_soft_update', default=False, type=bool)
+    parser.add_argument('--opt_ddqn', default=False, type=bool)
 
     return parser
 
@@ -112,7 +114,7 @@ if __name__ == '__main__':
                                      parents=[get_args_parser()])
     args = parser.parse_args()
     print(args)
-
+    os.environ["CUDA_VISIBLE_DEVICES"] = '1'
     output_dir = args.output_dir + '/' + args.experiment_name
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -186,7 +188,9 @@ if __name__ == '__main__':
         "learning_rate": args.learning_rate,
         "tau": args.tau,
         "learn_every": args.learn_every,
-        "hard_update_every": args.target_update
+        "hard_update_every": args.target_update,
+        'opt_soft_update': args.opt_soft_update,
+        'opt_ddqn': args.opt_ddqn
     }
 
     dqn = CustomDQNAgent(
