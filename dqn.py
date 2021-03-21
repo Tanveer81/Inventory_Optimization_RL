@@ -19,24 +19,17 @@ def get_args_parser():
     parser.add_argument('--experiment_name', default='dqn_demo', type=str)
     parser.add_argument('--num_episodes', default=5000, type=int)
     parser.add_argument('--seed', default=5214, type=int)
-    parser.add_argument('--output_dir', default='output',
-                        help='path where to save, empty for no saving')
+    parser.add_argument('--output_dir', default='output', help='path where to save, empty for no saving')
+    parser.add_argument('--env', default='stockManager-v0', type=str, choices=('stockManager-v0', 'stockManager-v1'))
     # Training
     parser.add_argument('--gamma', default=0.99, type=float)
-    parser.add_argument('--eps_start', default=0.9, type=float)
-    parser.add_argument('--eps_end', default=0.05, type=float)
-    parser.add_argument('--eps_decay', default=200, type=int)
     parser.add_argument('--target_update', default=10, type=int)
     parser.add_argument('--learning_rate', default=2.5e-4, type=float)
-    parser.add_argument('--discount_factor', default=0.99, type=float)
-    parser.add_argument('--epsilon', default=0.1, type=float)
-    parser.add_argument('--epsilon_decay', default=0.99, type=float)
     parser.add_argument('--train', default=False, type=bool)
     parser.add_argument('--test', default=False, type=bool)
     parser.add_argument('--sinusoidal_demand', default=False, type=bool)
     parser.add_argument('--sine_type', default=3, type=int)
     parser.add_argument('--resume', default=False, type=bool)
-    parser.add_argument('--replay_batch_size', default=128, type=int)
     parser.add_argument('--demand_satisfaction', default=False, type=bool)
     parser.add_argument('--past_demand', default=3, type=int)
     parser.add_argument('--noisy_demand', default=False, type=bool)
@@ -49,7 +42,8 @@ def get_args_parser():
     parser.add_argument('--tau', default=1e-3, type=float)
     parser.add_argument('--opt_soft_update', default=False, type=bool)
     parser.add_argument('--opt_ddqn', default=False, type=bool)
-
+    parser.add_argument("--cuda_visible_device", nargs="*", type=int, default=None,
+                        help="list of cuda visible devices")
     return parser
 
 
@@ -114,8 +108,13 @@ if __name__ == '__main__':
                                      parents=[get_args_parser()])
     args = parser.parse_args()
     print(args)
-    os.environ["CUDA_VISIBLE_DEVICES"] = '1'
-    output_dir = args.output_dir + '/' + args.experiment_name
+    # os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+    if args.cuda_visible_device is not None:
+        os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(map(str, args.cuda_visible_device))
+
+    output_dir = output_dir_logger = args.output_dir + '/' + args.experiment_name
+    if args.test and not args.train:
+        output_dir_logger = output_dir_logger+'-test'
     os.makedirs(args.output_dir, exist_ok=True)
 
     np.random.seed(args.seed)
@@ -124,7 +123,7 @@ if __name__ == '__main__':
     mat_info = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
     hist_data = pd.read_csv("Data/Preprocessing/train_q115.csv")
 
-    logger = Logger(path=output_dir, comment=None, verbosity='DEBUG',
+    logger = Logger(path=output_dir_logger, comment=None, verbosity='DEBUG',
                     experiment_name=args.experiment_name)
 
     config = {'hist_data': hist_data,
@@ -138,7 +137,7 @@ if __name__ == '__main__':
               'logger': logger
               }
 
-    env = gym.make("stockManager-v0", **config)
+    env = gym.make(args.env, **config)
 
     test_data = pd.read_csv("Data/Preprocessing/test_q115.csv")
     test_config = {'hist_data': test_data,
@@ -153,7 +152,7 @@ if __name__ == '__main__':
                    'logger': logger
                    }
 
-    test_env = gym.make("stockManager-v0", **test_config)
+    test_env = gym.make(args.env, **test_config)
 
     # if gpu is to be used
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -206,18 +205,20 @@ if __name__ == '__main__':
         opt_soft_update=False,
         opt_ddqn=False)
 
-    e = CustomGymEnvironment(env=env,
-                             algorithm=dqn,
-                             seed=args.seed,
-                             logger=logger,
-                             gifs_recorder=None)
-    e.train(num_episodes=args.num_episodes, max_t=None, add_noise=True,
-            scores_window_size=100, save_every=1)
+    if args.train:
+        e = CustomGymEnvironment(env=env,
+                                 algorithm=dqn,
+                                 seed=args.seed,
+                                 logger=logger,
+                                 gifs_recorder=None)
+        e.train(num_episodes=args.num_episodes, max_t=None, add_noise=True,
+                scores_window_size=100, save_every=1)
 
-    print('\ntest\n')
-    e_test = CustomGymEnvironment(env=test_env,
-                                  algorithm=dqn,
-                                  seed=args.seed,
-                                  logger=logger,
-                                  gifs_recorder=None)
-    e_test.test(num_episodes=1, load_state_dicts=True, render=True)
+    if args.test:
+        print('\ntest\n')
+        e_test = CustomGymEnvironment(env=test_env,
+                                      algorithm=dqn,
+                                      seed=args.seed,
+                                      logger=logger,
+                                      gifs_recorder=None)
+        e_test.test(num_episodes=1, load_state_dicts=True, render=True)
