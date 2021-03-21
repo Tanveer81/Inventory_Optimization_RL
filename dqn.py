@@ -44,6 +44,11 @@ def get_args_parser():
     parser.add_argument('--opt_ddqn', default=False, type=bool)
     parser.add_argument("--cuda_visible_device", nargs="*", type=int, default=None,
                         help="list of cuda visible devices")
+    parser.add_argument('--inventory_weight', default=1, type=int)
+    parser.add_argument('--stock_out_weight', default=1, type=int)
+    parser.add_argument('--hack_test', default=False, type=bool)
+    parser.add_argument('--hack_train', default=False, type=bool)
+
     return parser
 
 
@@ -134,9 +139,11 @@ if __name__ == '__main__':
               'past_demand': args.past_demand,
               'sine_type': args.sine_type,
               'noisy_demand': args.noisy_demand,
-              'logger': logger
+              'logger': logger,
+              'inventory_weight': args.inventory_weight,
+              'stock_out_weight': args.stock_out_weight,
+              'hack_train': args.hack_train
               }
-
     env = gym.make(args.env, **config)
 
     test_data = pd.read_csv("Data/Preprocessing/test_q115.csv")
@@ -149,7 +156,8 @@ if __name__ == '__main__':
                    'sine_type': args.sine_type,
                    'noisy_demand': args.noisy_demand,
                    'test': True,
-                   'logger': logger
+                   'logger': logger,
+                   'hack_test': args.hack_test
                    }
 
     test_env = gym.make(args.env, **test_config)
