@@ -119,7 +119,8 @@ if __name__ == '__main__':
 
     output_dir = output_dir_logger = args.output_dir + '/' + args.experiment_name
     if args.test and not args.train:
-        output_dir_logger = output_dir_logger+'-test'
+        name = '-hack_test' if args.hack_test else '-test'
+        output_dir_logger = output_dir_logger+name
     os.makedirs(args.output_dir, exist_ok=True)
 
     np.random.seed(args.seed)
