@@ -48,6 +48,7 @@ def get_args_parser():
     parser.add_argument('--stock_out_weight', default=1, type=int)
     parser.add_argument('--hack_test', default=False, type=bool)
     parser.add_argument('--hack_train', default=False, type=bool)
+    parser.add_argument('--evaluate_train', default=False, type=bool)
 
     return parser
 
@@ -119,7 +120,9 @@ if __name__ == '__main__':
 
     output_dir = output_dir_logger = args.output_dir + '/' + args.experiment_name
     if args.test and not args.train:
-        name = '-hack_test' if args.hack_test else '-test'
+        name = '_hack_test' if args.hack_test else '_test'
+        if args.evaluate_train:
+            name = name + '_evaluate_train'
         output_dir_logger = output_dir_logger+name
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -148,7 +151,7 @@ if __name__ == '__main__':
     env = gym.make(args.env, **config)
 
     test_data = pd.read_csv("Data/Preprocessing/test_q115.csv")
-    test_config = {'hist_data': test_data,
+    test_config = {'hist_data': hist_data if args.evaluate_train else test_data,
                    'mat_info': mat_info,
                    'random_reset': False,
                    'sinusoidal_demand': args.sinusoidal_demand,
