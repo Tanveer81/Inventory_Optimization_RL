@@ -20,10 +20,10 @@ def get_args_parser():
     parser.add_argument('--num_episodes', default=5000, type=int)
     parser.add_argument('--seed', default=5214, type=int)
     parser.add_argument('--output_dir', default='output', help='path where to save, empty for no saving')
-    parser.add_argument('--env', default='stockManager-v0', type=str, choices=('stockManager-v0', 'stockManager-v1'))
+    parser.add_argument('--env', default='stockManager-v1', type=str, choices=('stockManager-v0', 'stockManager-v1'))
     # Training
     parser.add_argument('--gamma', default=0.99, type=float)
-    parser.add_argument('--target_update', default=10, type=int)
+    parser.add_argument('--target_update', default=1000, type=int)
     parser.add_argument('--learning_rate', default=2.5e-4, type=float)
     parser.add_argument('--train', default=False, type=bool)
     parser.add_argument('--test', default=False, type=bool)
@@ -216,6 +216,9 @@ if __name__ == '__main__':
         model_output_dir=output_dir,
         opt_soft_update=False,
         opt_ddqn=False)
+
+    if args.resume:
+        dqn.load_state_dicts()
 
     if args.train:
         e = CustomGymEnvironment(env=env,

@@ -155,8 +155,9 @@ class StockManagerSingleAction(gym.Env, ABC):
                     else:
                         effective_action = 0
 
-                    print(self.monitor_timestep[0], self.stock_level[0], effective_action,
-                          self.reward_for_one_inner_timestep(i))
+                    if self.test:
+                        print(self.monitor_timestep[0], self.stock_level[0], effective_action,
+                              self.reward_for_one_inner_timestep(i))
 
                     if self.logger and self.test:
                         self.logger.add_scalar(
