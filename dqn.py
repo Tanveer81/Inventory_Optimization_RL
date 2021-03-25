@@ -148,6 +148,10 @@ if __name__ == '__main__':
               'stock_out_weight': args.stock_out_weight,
               'hack_train': args.hack_train
               }
+    if args.env == 'stockManager-v0':
+        config.pop('inventory_weight', None)
+        config.pop('stock_out_weight', None)
+        config.pop('hack_train', None)
     env = gym.make(args.env, **config)
 
     test_data = pd.read_csv("Data/Preprocessing/test_q115.csv")
@@ -163,7 +167,8 @@ if __name__ == '__main__':
                    'logger': logger,
                    'hack_test': args.hack_test
                    }
-
+    if args.env == 'stockManager-v0':
+        test_config.pop('hack_test', None)
     test_env = gym.make(args.env, **test_config)
 
     # if gpu is to be used

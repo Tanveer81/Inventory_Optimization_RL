@@ -128,9 +128,6 @@ class StockManagerSingleAction(gym.Env, ABC):
                     self.logger.add_scalar(
                         'reward', self.reward_for_one_inner_timestep(i), self.monitor_timestep[0]
                     )
-                    self.logger.add_scalar(
-                        'demand', self.history.iloc[monitor_time, i], self.monitor_timestep[0]
-                    )
                 self.monitor_timestep[i] += 1
 
 
@@ -173,9 +170,6 @@ class StockManagerSingleAction(gym.Env, ABC):
                         self.logger.add_scalar(
                             'reward', self.reward_for_one_inner_timestep(i),
                             self.monitor_timestep[0]
-                        )
-                        self.logger.add_scalar(
-                            'demand', self.history.iloc[monitor_time, i], self.monitor_timestep[0]
                         )
 
                     self.monitor_timestep[i] += 1
