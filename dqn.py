@@ -49,6 +49,7 @@ def get_args_parser():
     parser.add_argument('--hack_test', default=False, type=bool)
     parser.add_argument('--hack_train', default=False, type=bool)
     parser.add_argument('--evaluate_train', default=False, type=bool)
+    parser.add_argument('--material_name', default='Q115', type=str, choices= ['B120BP', 'B120', 'Q120', 'TA2J6500', 'Q115', 'Q2100H', 'Q3015'])
 
     return parser
 
@@ -114,7 +115,6 @@ if __name__ == '__main__':
                                      parents=[get_args_parser()])
     args = parser.parse_args()
     print(args)
-    # os.environ["CUDA_VISIBLE_DEVICES"] = '0'
     if args.cuda_visible_device is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = ','.join(map(str, args.cuda_visible_device))
 
@@ -129,8 +129,13 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     random.seed(args.seed)
 
-    mat_info = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
-    hist_data = pd.read_csv("Data/Preprocessing/train_q115.csv")
+    mat_info1 = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
+    hist_data1 = pd.read_csv("Data/Preprocessing/train_q115.csv")
+
+    mat_info = pd.read_csv("Data/Material_Information.csv", sep=";", index_col="Material")
+    mat_info = mat_info.loc[[args.material_name]]
+    hist_data = pd.read_csv("Data/Preprocessing/train.csv")
+    hist_data = hist_data[[args.material_name]]
 
     logger = Logger(path=output_dir_logger, comment=None, verbosity='DEBUG',
                     experiment_name=args.experiment_name)
@@ -154,7 +159,8 @@ if __name__ == '__main__':
         config.pop('hack_train', None)
     env = gym.make(args.env, **config)
 
-    test_data = pd.read_csv("Data/Preprocessing/test_q115.csv")
+    test_data = pd.read_csv("Data/Preprocessing/test.csv")
+    test_data = test_data[[args.material_name]]
     test_config = {'hist_data': hist_data if args.evaluate_train else test_data,
                    'mat_info': mat_info,
                    'random_reset': False,

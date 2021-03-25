@@ -120,16 +120,16 @@ class StockManagerSingleAction(gym.Env, ABC):
                 print(self.monitor_timestep[0], self.stock_level[0], self.action, self.reward_for_one_inner_timestep(i))
                 if self.logger and self.test:
                     self.logger.add_scalar(
-                        'stock_level', self.stock_level[0], self.monitor_timestep[0]
+                        f'stock_level_{self.history.columns[0]}', self.stock_level[0], self.monitor_timestep[0]
                     )
                     self.logger.add_scalar(
-                        'effective_action', self.action, self.monitor_timestep[0]  # TODO: remove hack
+                        f'effective_action_{self.history.columns[0]}', self.action, self.monitor_timestep[0]  # TODO: remove hack
                     )
                     self.logger.add_scalar(
-                        'reward', self.reward_for_one_inner_timestep(i), self.monitor_timestep[0]
+                        f'reward_{self.history.columns[0]}', self.reward_for_one_inner_timestep(i), self.monitor_timestep[0]
                     )
                     self.logger.add_scalar(
-                        'demand', self.history.iloc[monitor_time, i], self.monitor_timestep[0]
+                        f'demand_{self.history.columns[0]}', self.history.iloc[monitor_time, i], self.monitor_timestep[0]
                     )
                 self.monitor_timestep[i] += 1
 
@@ -164,18 +164,18 @@ class StockManagerSingleAction(gym.Env, ABC):
 
                     if self.logger and self.test:
                         self.logger.add_scalar(
-                            'stock_level', self.stock_level[0], self.monitor_timestep[0]
+                            f'stock_level_{self.history.columns[0]}', self.stock_level[0], self.monitor_timestep[0]
                         )
                         self.logger.add_scalar(
-                            'effective_action', effective_action, self.monitor_timestep[0]
+                            f'effective_action_{self.history.columns[0]}', effective_action, self.monitor_timestep[0]
                             # TODO: remove hack
                         )
                         self.logger.add_scalar(
-                            'reward', self.reward_for_one_inner_timestep(i),
+                            f'reward_{self.history.columns[0]}', self.reward_for_one_inner_timestep(i),
                             self.monitor_timestep[0]
                         )
                         self.logger.add_scalar(
-                            'demand', self.history.iloc[monitor_time, i], self.monitor_timestep[0]
+                            f'demand_{self.history.columns[0]}', self.history.iloc[monitor_time, i], self.monitor_timestep[0]
                         )
 
                     self.monitor_timestep[i] += 1
