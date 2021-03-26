@@ -129,9 +129,6 @@ if __name__ == '__main__':
     np.random.seed(args.seed)
     random.seed(args.seed)
 
-    mat_info1 = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
-    hist_data1 = pd.read_csv("Data/Preprocessing/train_q115.csv")
-
     mat_info = pd.read_csv("Data/Material_Information.csv", sep=";", index_col="Material")
     mat_info = mat_info.loc[[args.material_name]]
     hist_data = pd.read_csv("Data/Preprocessing/train.csv")

@@ -93,8 +93,8 @@ class SimulateBenchmark:
     def reward_function(self):
 
         for i in range(len(self.stock_level)):
-            reward = self.demand_satisfaction[i] - self.inv_costs[i] * max(self.stock_level[i], 0) - \
-                     self.stock_out_costs[i] * min(self.stock_level[i], 0)
+            reward = - self.inv_costs[i] * max(self.stock_level[i], 0) + \
+                     self.stock_out_costs[i] * min(self.stock_level[i], 0) # + self.demand_satisfaction[i]
 
             self.reward_history[i].append(reward)
 
@@ -151,30 +151,44 @@ def visualize(agents):
 
     
 if __name__ == '__main__':
-    for mood in ['test', 'train']:
-        output_dir_logger = f'output/benchmark_{mood}'
-        logger = Logger(path=output_dir_logger, comment=None, verbosity='DEBUG', experiment_name=f'benchmark_{mood}')
-        q115_test = pd.read_csv(f"Data/Preprocessing/{mood}_q115.csv")
-        mat_info_q115 = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
-        threshold_q115 = [45616]
+    for material in ['B120BP', 'B120', 'Q120', 'TA2J6500', 'Q115', 'Q2100H', 'Q3015']:
+        print(material)
+        for mood in ['test', 'train']:
+            output_dir_logger = f'output/benchmark_{mood}'
+            logger = Logger(path=output_dir_logger, comment=None, verbosity='DEBUG', experiment_name=f'benchmark_{mood}')
+            # q115_test = pd.read_csv(f"Data/Preprocessing/{mood}_q115.csv")
+            # mat_info_q115 = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
 
-        Sebastians_model = SimulateBenchmark(q115_test, mat_info_q115, threshold_q115)
-        stock_history, action_history, reward_history = Sebastians_model.simulate()
+            mat_info = pd.read_csv("Data/Material_Information.csv", sep=";", index_col="Material")
+            mat_info = mat_info.loc[[material]]
+            hist_data = pd.read_csv(f"Data/Preprocessing/{mood}.csv")
+            hist_data = hist_data[[material]]
 
-        for i in range(q115_test.size):
-            logger.add_scalar(
-                'stock_level', stock_history[0][i], i
-            )
-            logger.add_scalar(
-                'effective_action', action_history[0][i], i
-                # TODO: remove hack
-            )
-            logger.add_scalar(
-                'reward', reward_history[0][i], i
-            )
-            logger.add_scalar(
-                'demand', q115_test.iloc[i, 0], i
-            )
+            threshold = {'B120': 12593,
+                        'B120BP': 34371,
+                        'Q115': 45616,
+                        'Q120': 145850,
+                        'Q2100H': 1931,
+                        'Q3015': 1020,
+                        'TA2J6500': 1481}
+
+            Sebastians_model = SimulateBenchmark(hist_data, mat_info, [threshold[material]]) #hack
+            stock_history, action_history, reward_history = Sebastians_model.simulate()
+
+            for i in range(hist_data.size):
+                logger.add_scalar(
+                    f'stock_level_{material}', stock_history[0][i], i
+                )
+                logger.add_scalar(
+                    f'effective_action_{material}', action_history[0][i], i
+                    # TODO: remove hack
+                )
+                logger.add_scalar(
+                    f'reward_{material}', reward_history[0][i], i
+                )
+                logger.add_scalar(
+                    f'demand_{material}', hist_data.iloc[i, 0], i
+                )
 
         print()
     #     visualize(stock_history, action_history, reward_history)
