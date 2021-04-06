@@ -4,16 +4,19 @@ from abc import ABC
 import numpy as np
 import gym
 import pandas as pd
+import datetime
 
 
-class StockManagerSingleAction(gym.Env, ABC):
+class StockManagerDate(gym.Env, ABC):
 
     def __init__(self, hist_data=None, mat_info=None, random_reset=False, sinusoidal_demand=False,
                  demand_satisfaction=False, past_demand=3, sine_type=3, noisy_demand=False,
                  test=False, logger=None, stock_out_weight=1, inventory_weight=1,
-                 hack_train=False, hack_test=False):
+                 hack_train=False, hack_test=False, past_stock=3,
+                 start_date_string=None):
 
-        super(StockManagerSingleAction, self).__init__()
+        super(StockManagerDate, self).__init__()
+        self.past_stock = past_stock
         self.hack_train = hack_train
         self.hack_test = hack_test
         self.stock_out_weight = stock_out_weight
@@ -46,6 +49,12 @@ class StockManagerSingleAction(gym.Env, ABC):
 
         # initialize current Stock Level (stock_level) : can be randomized
         self.stock_level = mat_info.loc[hist_data.columns, 'Order_Volume'].values
+        if self.past_stock!=0:
+            self.stock_history = np.zeros((len(mat_info), self.past_stock), int)
+
+        self.date_feature = start_date_string
+        if self.date_feature is not None:
+            self.date_feature = datetime.datetime.strptime(self.date_feature, '%Y-%m-%d').date().timetuple().tm_yday
 
         # define observation space (currently for only one material)
         '''
@@ -56,11 +65,28 @@ class StockManagerSingleAction(gym.Env, ABC):
             previous days demand
             previous two days' demand
         '''
-        list1 = [self.storage_cap[0], self.storage_cap[0]]
         list2 = [100000] * self.past_demand
-        self.observation_space = gym.spaces.Box(low=np.array([0] * (self.past_demand + 2)),
-                                                high=np.array(list1 + list2),
-                                                dtype=np.float32)
+        if self.past_stock == 0 and self.date_feature is None:
+            list1 = [self.storage_cap[0], self.storage_cap[0]]
+            self.observation_space = gym.spaces.Box(low=np.array([0] * (self.past_demand + 2)),
+                                                    high=np.array(list1 + list2),
+                                                    dtype=np.float32)
+        elif self.past_stock == 0 and self.date_feature is not None:
+            list1 = [self.storage_cap[0], self.storage_cap[0], 366]
+            self.observation_space = gym.spaces.Box(low=np.array([0] * (self.past_demand + 3)),
+                                                    high=np.array(list1 + list2),
+                                                    dtype=np.float32)
+        elif self.past_stock != 0 and self.date_feature is None:
+            list2 = [100000] * (self.past_demand + self.past_stock)
+            self.observation_space = gym.spaces.Box(low=np.array([0] * (self.past_demand + self.past_stock)),
+                                                    high=np.array(list2),
+                                                    dtype=np.float32)
+        else:
+            list1 = [366]
+            list2 = [100000] * (self.past_demand + self.past_stock)
+            self.observation_space = gym.spaces.Box(low=np.array([0] * (self.past_demand + self.past_stock + 1)),
+                                                    high=np.array(list1 + list2),
+                                                    dtype=np.float32)
 
         # define action space (currently for only one material)
         self.action_space = gym.spaces.Discrete(2)
@@ -81,10 +107,10 @@ class StockManagerSingleAction(gym.Env, ABC):
             previous days demand
             previous two days' demand
         '''
-        self.observation_space = gym.spaces.Box(
-            low=np.array([[float('-inf')] * (self.past_demand + 3)]),
-            high=np.array([[float('inf')] * (self.past_demand + 3)]),
-            dtype=np.float32)
+        # self.observation_space = gym.spaces.Box(
+        #     low=np.array([[float('-inf')] * (self.past_demand + 3)]),
+        #     high=np.array([[float('inf')] * (self.past_demand + 3)]),
+        #     dtype=np.float32)
 
         # define action space (currently for only one material)
         self.action_space = gym.spaces.Discrete(2)
@@ -97,6 +123,16 @@ class StockManagerSingleAction(gym.Env, ABC):
 
         return reward
 
+    def update_stock_history(self):
+        """
+        updates the stock history in a step wise manner.
+        :return: stock history
+        """
+        # pop the first column (oldest history)
+        self.stock_history = self.stock_history[:, 1:]
+        # add the new demand at the end (latest history)
+        self.stock_history = np.c_[self.stock_history, self.stock_level]
+
     def update_stock_level_and_reward(self, actions):
         """
         defines the transition function and the reward function
@@ -108,7 +144,6 @@ class StockManagerSingleAction(gym.Env, ABC):
         for i in range(len(self.stock_level)):
             if actions[i] == 1:
                 self.stock_level[i] = self.stock_level[i] + self.reorder[i]
-
             # for the next n days equal to delivery time, update the stock level and reward.
             rewards = []
             monitor_time = self.monitor_timestep[i]
@@ -116,17 +151,21 @@ class StockManagerSingleAction(gym.Env, ABC):
             if self.test and actions[i] == 0 and self.hack_test:
                 # for each inner time step, introduce the current demand and calculate the reward.
                 self.stock_level[i] = self.stock_level[i] - self.history.iloc[monitor_time, i]
+                self.update_stock_history()
                 rewards.append(self.reward_for_one_inner_timestep(i))
                 print(self.monitor_timestep[0], self.stock_level[0], self.action, self.reward_for_one_inner_timestep(i))
                 if self.logger and self.test:
                     self.logger.add_scalar(
-                        'stock_level', self.stock_level[0], self.monitor_timestep[0]
+                        f'stock_level_{self.history.columns[0]}', self.stock_level[0], self.monitor_timestep[0]
                     )
                     self.logger.add_scalar(
-                        'effective_action', self.action, self.monitor_timestep[0]  # TODO: remove hack
+                        f'effective_action_{self.history.columns[0]}', self.action, self.monitor_timestep[0]  # TODO: remove hack
                     )
                     self.logger.add_scalar(
-                        'reward', self.reward_for_one_inner_timestep(i), self.monitor_timestep[0]
+                        f'reward_{self.history.columns[0]}', self.reward_for_one_inner_timestep(i), self.monitor_timestep[0]
+                    )
+                    self.logger.add_scalar(
+                        f'demand_{self.history.columns[0]}', self.history.iloc[monitor_time, i], self.monitor_timestep[0]
                     )
                 self.monitor_timestep[i] += 1
 
@@ -135,19 +174,21 @@ class StockManagerSingleAction(gym.Env, ABC):
                 temp_stock = self.stock_level[i] - self.history.iloc[monitor_time, i]
                 for j in range(self.delivery_time[i]):
                     # for each inner time step, introduce the current demand and calculate the reward.
-                    self.stock_level[i] = self.stock_level[i] - self.history.iloc[
-                        j + monitor_time, i]
+                    self.stock_level[i] = self.stock_level[i] - self.history.iloc[j + monitor_time, i]
                     rewards.append(self.reward_for_one_inner_timestep(i))
                     self.monitor_timestep[i] += 1
 
                 self.monitor_timestep[i] = self.monitor_timestep[i] - self.delivery_time[i] + 1
                 self.stock_level[i] = temp_stock
+                self.update_stock_history()
 
             else:
                 for j in range(self.delivery_time[i]):
                     # for each inner time step, introduce the current demand and calculate the reward.
-                    self.stock_level[i] = self.stock_level[i] - self.history.iloc[
-                        j + monitor_time, i]
+                    # if actions[i] == 1 and j == self.delivery_time[i] -1 :
+                    #     self.stock_level[i] = self.stock_level[i] + self.reorder[i]
+                    self.stock_level[i] = self.stock_level[i] - self.history.iloc[j + monitor_time, i]
+                    self.update_stock_history()
                     rewards.append(self.reward_for_one_inner_timestep(i))
 
                     if j == 0:
@@ -161,15 +202,18 @@ class StockManagerSingleAction(gym.Env, ABC):
 
                     if self.logger and self.test:
                         self.logger.add_scalar(
-                            'stock_level', self.stock_level[0], self.monitor_timestep[0]
+                            f'stock_level_{self.history.columns[0]}', self.stock_level[0], self.monitor_timestep[0]
                         )
                         self.logger.add_scalar(
-                            'effective_action', effective_action, self.monitor_timestep[0]
+                            f'effective_action_{self.history.columns[0]}', effective_action, self.monitor_timestep[0]
                             # TODO: remove hack
                         )
                         self.logger.add_scalar(
-                            'reward', self.reward_for_one_inner_timestep(i),
+                            f'reward_{self.history.columns[0]}', self.reward_for_one_inner_timestep(i),
                             self.monitor_timestep[0]
+                        )
+                        self.logger.add_scalar(
+                            f'demand_{self.history.columns[0]}', self.history.iloc[monitor_time, i], self.monitor_timestep[0]
                         )
 
                     self.monitor_timestep[i] += 1
@@ -185,15 +229,24 @@ class StockManagerSingleAction(gym.Env, ABC):
 
         return avg_rewards_all_materials, done
 
+    # stock, date, demand
     def define_new_state(self):
-
-        new_state = [[0, 0] for _ in range(len(self.mat_info))]
+        new_state = [[] * len(self.stock_level)]
         # loop over each material
         for i in range(len(self.stock_level)):
-            if self.stock_level[i] >= 0:
-                new_state[i][0] = self.stock_level[i]
+            if self.past_stock!=0:
+                for stock in self.stock_history[i]:
+                    stock = (stock + self.storage_cap[i]) / (2*self.storage_cap[i])
+                    new_state[i].append(stock)
             else:
-                new_state[i][1] = abs(self.stock_level[i])
+                new_state = [[0, 0] for _ in range(len(self.mat_info))]
+                if self.stock_level[i] >= 0:
+                    new_state[i][0] = self.stock_level[i]
+                else:
+                    new_state[i][1] = abs(self.stock_level[i])
+
+            if self.date_feature is not None:
+                new_state[i].append((self.date_feature + self.monitor_timestep[i]) % 366)
 
             # add demand history?
             new_state[i].extend(self.history.iloc[

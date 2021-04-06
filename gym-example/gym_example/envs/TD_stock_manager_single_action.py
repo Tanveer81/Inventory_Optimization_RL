@@ -108,7 +108,6 @@ class StockManagerSingleAction(gym.Env, ABC):
         for i in range(len(self.stock_level)):
             if actions[i] == 1:
                 self.stock_level[i] = self.stock_level[i] + self.reorder[i]
-
             # for the next n days equal to delivery time, update the stock level and reward.
             rewards = []
             monitor_time = self.monitor_timestep[i]
@@ -149,8 +148,9 @@ class StockManagerSingleAction(gym.Env, ABC):
             else:
                 for j in range(self.delivery_time[i]):
                     # for each inner time step, introduce the current demand and calculate the reward.
-                    self.stock_level[i] = self.stock_level[i] - self.history.iloc[
-                        j + monitor_time, i]
+                    # if actions[i] == 1 and j == self.delivery_time[i] -1 :
+                    #     self.stock_level[i] = self.stock_level[i] + self.reorder[i]
+                    self.stock_level[i] = self.stock_level[i] - self.history.iloc[j + monitor_time, i]
                     rewards.append(self.reward_for_one_inner_timestep(i))
 
                     if j == 0:
@@ -202,9 +202,7 @@ class StockManagerSingleAction(gym.Env, ABC):
                 new_state[i][1] = abs(self.stock_level[i])
 
             # add demand history?
-            new_state[i].extend(self.history.iloc[
-                                self.monitor_timestep[i] - self.past_demand: self.monitor_timestep[
-                                    i], i])
+            new_state[i].extend(self.history.iloc[self.monitor_timestep[i] - self.past_demand: self.monitor_timestep[i], i])
 
         return np.array(new_state)
         # return new_state
