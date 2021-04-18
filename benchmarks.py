@@ -154,7 +154,7 @@ if __name__ == '__main__':
     for material in ['B120BP', 'B120', 'Q120', 'TA2J6500', 'Q115', 'Q2100H', 'Q3015']:
         print(material)
         for mood in ['test', 'train']:
-            output_dir_logger = f'output/benchmark_{mood}'
+            output_dir_logger = f'output/benchmarks_{mood}'
             logger = Logger(path=output_dir_logger, comment=None, verbosity='DEBUG', experiment_name=f'benchmark_{mood}')
             # q115_test = pd.read_csv(f"Data/Preprocessing/{mood}_q115.csv")
             # mat_info_q115 = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
