@@ -71,6 +71,7 @@ class StockManagerSingleAction(gym.Env, ABC):
 
         self.test = test
         self.logger = logger
+        self.total_reward = 0
 
         # define observation space (currently for only one material)
         '''
@@ -106,8 +107,8 @@ class StockManagerSingleAction(gym.Env, ABC):
         avg_rewards_all_materials = []
         # loop over all materials
         for i in range(len(self.stock_level)):
-            if actions[i] == 1 and not self.test:
-                self.stock_level[i] = self.stock_level[i] + self.reorder[i]
+            # if actions[i] == 1 and not self.test:
+            #     self.stock_level[i] = self.stock_level[i] + self.reorder[i]
             # for the next n days equal to delivery time, update the stock level and reward.
             rewards = []
             monitor_time = self.monitor_timestep[i]
@@ -117,20 +118,7 @@ class StockManagerSingleAction(gym.Env, ABC):
                 self.stock_level[i] = self.stock_level[i] - self.history.iloc[monitor_time, i]
                 rewards.append(self.reward_for_one_inner_timestep(i))
                 print(self.monitor_timestep[0], self.stock_level[0], self.action, self.reward_for_one_inner_timestep(i))
-                if self.logger and self.test:
-                    self.logger.add_scalar(
-                        f'stock_level_{self.history.columns[0]}', self.stock_level[0], self.monitor_timestep[0]
-                    )
-                    self.logger.add_scalar(
-                        f'effective_action_{self.history.columns[0]}', self.action, self.monitor_timestep[0]  # TODO: remove hack
-                    )
-                    self.logger.add_scalar(
-                        f'reward_{self.history.columns[0]}', self.reward_for_one_inner_timestep(i), self.monitor_timestep[0]
-                    )
-                    self.logger.add_scalar(
-                        f'demand_{self.history.columns[0]}', self.history.iloc[monitor_time, i], self.monitor_timestep[0]
-                    )
-                self.monitor_timestep[i] += 1
+                self.test_log(self.action, i, monitor_time)
 
 
             elif actions[i] == 0 and self.hack_train:
@@ -148,48 +136,61 @@ class StockManagerSingleAction(gym.Env, ABC):
             else:
                 for j in range(self.delivery_time[i]):
                     # for each inner time step, introduce the current demand and calculate the reward.
-                    if actions[i] == 1 and j == self.delivery_time[i] -1 and self.test:
-                        self.stock_level[i] = self.stock_level[i] + self.reorder[i]
-                    self.stock_level[i] = self.stock_level[i] - self.history.iloc[j + monitor_time, i]
-                    rewards.append(self.reward_for_one_inner_timestep(i))
-
-                    if j == 0:
-                        effective_action = actions[i]
-                    else:
-                        effective_action = 0
-
-                    if self.test:
-                        print(self.monitor_timestep[0], self.stock_level[0], effective_action,
-                              self.reward_for_one_inner_timestep(i))
-
-                    if self.logger and self.test:
-                        self.logger.add_scalar(
-                            f'stock_level_{self.history.columns[0]}', self.stock_level[0], self.monitor_timestep[0]
-                        )
-                        self.logger.add_scalar(
-                            f'effective_action_{self.history.columns[0]}', effective_action, self.monitor_timestep[0]
-                            # TODO: remove hack
-                        )
-                        self.logger.add_scalar(
-                            f'reward_{self.history.columns[0]}', self.reward_for_one_inner_timestep(i),
-                            self.monitor_timestep[0]
-                        )
-                        self.logger.add_scalar(
-                            f'demand_{self.history.columns[0]}', self.history.iloc[monitor_time, i], self.monitor_timestep[0]
-                        )
-
-                    self.monitor_timestep[i] += 1
+                    self.write_log(actions, i, j, monitor_time, rewards)
 
             avg_rewards_all_materials.append(np.mean(rewards))
 
             # check to see if timesteps have reached the end.
             if self.monitor_timestep[i] >= len(self.history) - self.delivery_time[i]:
+                for j in range(self.monitor_timestep[i], len(self.history)):
+                    self.write_log(actions, i, j, 0, rewards)
+
+                self.logger.add_scalar(f'total_reward_{self.history.columns[0]}', self.total_reward, 0)
+                print(f'self.total_reward_{self.total_reward}')
                 done = True
                 break
             else:
                 done = False
 
         return avg_rewards_all_materials, done
+
+    def write_log(self, actions, i, j, monitor_time, rewards):
+        if actions[i] == 1 and j == self.delivery_time[i] - 1:  # and self.test:
+            self.stock_level[i] = self.stock_level[i] + self.reorder[i]
+        self.stock_level[i] = self.stock_level[i] - self.history.iloc[j + monitor_time, i]
+        rewards.append(self.reward_for_one_inner_timestep(i))
+        if j == 0:
+            effective_action = actions[i]
+        else:
+            effective_action = 0
+        if self.test:
+            print(self.monitor_timestep[0], self.stock_level[0], effective_action,
+                  self.reward_for_one_inner_timestep(i))
+        self.test_log(effective_action, i, monitor_time)
+
+    def test_log(self, effective_action, i, monitor_time):
+        if self.logger and self.test:
+            self.logger.add_scalar(
+                f'stock_level_{self.history.columns[0]}', self.stock_level[0],
+                self.monitor_timestep[0]
+            )
+            self.logger.add_scalar(
+                f'effective_action_{self.history.columns[0]}', effective_action,
+                self.monitor_timestep[0]
+                # TODO: remove hack
+            )
+            current_reward = self.reward_for_one_inner_timestep(i)
+            self.total_reward += current_reward
+            self.logger.add_scalar(
+                f'reward_{self.history.columns[0]}',
+                current_reward,
+                self.monitor_timestep[0]
+            )
+            self.logger.add_scalar(
+                f'demand_{self.history.columns[0]}', self.history.iloc[monitor_time, i],
+                self.monitor_timestep[0]
+            )
+        self.monitor_timestep[i] += 1
 
     def define_new_state(self):
 
@@ -224,7 +225,7 @@ class StockManagerSingleAction(gym.Env, ABC):
 
         if self.random_reset:
             # initialize an empty Demand History (demand_history)
-            self.monitor_timestep = [
+            past_demand = [
                 random.randint(self.past_demand, self.delivery_time[i] + self.past_demand)
                 for i in range(len(self.mat_info))]
             self.demand_satisfaction = [0 for _ in range(len(self.mat_info))]
@@ -234,11 +235,17 @@ class StockManagerSingleAction(gym.Env, ABC):
 
         else:
             # initialize an empty Demand History (demand_history)
-            self.monitor_timestep = [self.past_demand for _ in range(len(self.mat_info))]
+            past_demand = [self.past_demand for _ in range(len(self.mat_info))]
             self.demand_satisfaction = [0 for _ in range(len(self.mat_info))]
 
             # initialize current Stock Level (stock_level) : can be randomized
             self.stock_level = self.mat_info.loc[self.history.columns, 'Order_Volume'].values
+        self.monitor_timestep = [0]*len(self.mat_info)
+
+        # loop over all materials
+        for i in range(len(self.stock_level)):
+            for j in range(past_demand[i]):
+                self.write_log([0], i, j, 0, [])
 
         return self.define_new_state()
 
