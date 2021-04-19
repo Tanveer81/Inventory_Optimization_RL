@@ -106,7 +106,7 @@ class StockManagerSingleAction(gym.Env, ABC):
         avg_rewards_all_materials = []
         # loop over all materials
         for i in range(len(self.stock_level)):
-            if actions[i] == 1:
+            if actions[i] == 1 and not self.test:
                 self.stock_level[i] = self.stock_level[i] + self.reorder[i]
             # for the next n days equal to delivery time, update the stock level and reward.
             rewards = []
@@ -148,8 +148,8 @@ class StockManagerSingleAction(gym.Env, ABC):
             else:
                 for j in range(self.delivery_time[i]):
                     # for each inner time step, introduce the current demand and calculate the reward.
-                    # if actions[i] == 1 and j == self.delivery_time[i] -1 :
-                    #     self.stock_level[i] = self.stock_level[i] + self.reorder[i]
+                    if actions[i] == 1 and j == self.delivery_time[i] -1 and self.test:
+                        self.stock_level[i] = self.stock_level[i] + self.reorder[i]
                     self.stock_level[i] = self.stock_level[i] - self.history.iloc[j + monitor_time, i]
                     rewards.append(self.reward_for_one_inner_timestep(i))
 
