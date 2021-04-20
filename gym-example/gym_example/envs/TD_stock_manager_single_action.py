@@ -171,25 +171,24 @@ class StockManagerSingleAction(gym.Env, ABC):
     def test_log(self, effective_action, i, monitor_time):
         if self.logger and self.test:
             self.logger.add_scalar(
-                f'stock_level_{self.history.columns[0]}', self.stock_level[0],
-                self.monitor_timestep[0]
+                f'stock_level_{self.history.columns[i]}', self.stock_level[0],
+                self.monitor_timestep[i]
             )
             self.logger.add_scalar(
-                f'effective_action_{self.history.columns[0]}', effective_action,
-                self.monitor_timestep[0]
-                # TODO: remove hack
+                f'effective_action_{self.history.columns[i]}', effective_action,
+                self.monitor_timestep[i]
             )
             current_reward = self.reward_for_one_inner_timestep(i)
             self.total_reward += current_reward
             self.logger.add_scalar(
-                f'reward_{self.history.columns[0]}',
+                f'reward_{self.history.columns[i]}',
                 current_reward,
-                self.monitor_timestep[0]
+                self.monitor_timestep[i]
             )
-            self.logger.add_scalar(
-                f'demand_{self.history.columns[0]}', self.history.iloc[monitor_time, i],
-                self.monitor_timestep[0]
-            )
+            # self.logger.add_scalar(
+            #     f'demand_{self.history.columns[i]}', self.history.iloc[self.monitor_timestep[i], i],
+            #     self.monitor_timestep[i]
+            # )
         self.monitor_timestep[i] += 1
 
     def define_new_state(self):
@@ -242,7 +241,7 @@ class StockManagerSingleAction(gym.Env, ABC):
             self.stock_level = self.mat_info.loc[self.history.columns, 'Order_Volume'].values
         self.monitor_timestep = [0]*len(self.mat_info)
 
-        # loop over all materials
+        # log stats before agent can take action or before number of past_demand days
         for i in range(len(self.stock_level)):
             for j in range(past_demand[i]):
                 self.write_log([0], i, j, 0, [])
