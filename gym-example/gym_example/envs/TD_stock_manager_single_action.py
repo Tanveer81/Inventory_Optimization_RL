@@ -11,9 +11,11 @@ class StockManagerSingleAction(gym.Env, ABC):
     def __init__(self, hist_data=None, mat_info=None, random_reset=False, sinusoidal_demand=False,
                  demand_satisfaction=False, past_demand=3, sine_type=3, noisy_demand=False,
                  test=False, logger=None, stock_out_weight=1, inventory_weight=1,
-                 hack_train=False, hack_test=False):
+                 hack_train=False, hack_test=False, immediate_action_train=False):
 
         super(StockManagerSingleAction, self).__init__()
+        self.immediate_action_train = immediate_action_train
+        self.test = test
         self.hack_train = hack_train
         self.hack_test = hack_test
         self.stock_out_weight = stock_out_weight
@@ -45,12 +47,14 @@ class StockManagerSingleAction(gym.Env, ABC):
         self.demand_satisfaction = [0 for _ in range(len(mat_info))]
 
         # initialize current Stock Level (stock_level) : can be randomized
-        self.stock_level = mat_info.loc[hist_data.columns, 'Order_Volume'].values
+        if self.test:
+            self.stock_level = mat_info.loc[hist_data.columns, 'Current_Stock_Level'].values
+        else:
+            self.stock_level = mat_info.loc[hist_data.columns, 'Order_Volume'].values
 
         # define observation space (currently for only one material)
         '''
             stock level
-            unfullfilled demand
             days to next reorder
             current demand
             previous days demand
@@ -69,14 +73,12 @@ class StockManagerSingleAction(gym.Env, ABC):
         self.reward = 0
         self.action = 0
 
-        self.test = test
         self.logger = logger
         self.total_reward = 0
 
         # define observation space (currently for only one material)
         '''
             stock level
-            unfullfilled demand
             days to next reorder
             current demand
             previous days demand
@@ -107,8 +109,8 @@ class StockManagerSingleAction(gym.Env, ABC):
         avg_rewards_all_materials = []
         # loop over all materials
         for i in range(len(self.stock_level)):
-            # if actions[i] == 1 and not self.test:
-            #     self.stock_level[i] = self.stock_level[i] + self.reorder[i]
+            if actions[i] == 1 and self.immediate_action_train and not self.test:
+                self.stock_level[i] = self.stock_level[i] + self.reorder[i]
             # for the next n days equal to delivery time, update the stock level and reward.
             rewards = []
             monitor_time = self.monitor_timestep[i]
@@ -144,9 +146,8 @@ class StockManagerSingleAction(gym.Env, ABC):
             if self.monitor_timestep[i] >= len(self.history) - self.delivery_time[i]:
                 for j in range(self.monitor_timestep[i], len(self.history)):
                     self.write_log(actions, i, j, 0, rewards)
-
-                self.logger.add_scalar(f'total_reward_{self.history.columns[0]}', self.total_reward, 0)
-                print(f'self.total_reward_{self.total_reward}')
+                if self.logger:
+                    self.logger.add_scalar(f'total_reward_{self.history.columns[0]}', self.total_reward, 0)
                 done = True
                 break
             else:
@@ -155,7 +156,7 @@ class StockManagerSingleAction(gym.Env, ABC):
         return avg_rewards_all_materials, done
 
     def write_log(self, actions, i, j, monitor_time, rewards):
-        if actions[i] == 1 and j == self.delivery_time[i] - 1:  # and self.test:
+        if actions[i] == 1 and j == self.delivery_time[i] - 1 and self.test and not self.immediate_action_train:
             self.stock_level[i] = self.stock_level[i] + self.reorder[i]
         self.stock_level[i] = self.stock_level[i] - self.history.iloc[j + monitor_time, i]
         rewards.append(self.reward_for_one_inner_timestep(i))
@@ -185,10 +186,6 @@ class StockManagerSingleAction(gym.Env, ABC):
                 current_reward,
                 self.monitor_timestep[i]
             )
-            # self.logger.add_scalar(
-            #     f'demand_{self.history.columns[i]}', self.history.iloc[self.monitor_timestep[i], i],
-            #     self.monitor_timestep[i]
-            # )
         self.monitor_timestep[i] += 1
 
     def define_new_state(self):
@@ -229,15 +226,15 @@ class StockManagerSingleAction(gym.Env, ABC):
                 for i in range(len(self.mat_info))]
             self.demand_satisfaction = [0 for _ in range(len(self.mat_info))]
 
-            # initialize current Stock Level (stock_level) : can be randomized
-            self.stock_level = self.mat_info.loc[self.history.columns, 'Order_Volume'].values
-
         else:
             # initialize an empty Demand History (demand_history)
             past_demand = [self.past_demand for _ in range(len(self.mat_info))]
             self.demand_satisfaction = [0 for _ in range(len(self.mat_info))]
 
-            # initialize current Stock Level (stock_level) : can be randomized
+        # initialize current Stock Level (stock_level) : can be randomized
+        if self.test:
+            self.stock_level = self.mat_info.loc[self.history.columns, 'Current_Stock_Level'].values
+        else:
             self.stock_level = self.mat_info.loc[self.history.columns, 'Order_Volume'].values
         self.monitor_timestep = [0]*len(self.mat_info)
 

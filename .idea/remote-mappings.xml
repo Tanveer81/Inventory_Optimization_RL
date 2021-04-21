@@ -6,7 +6,7 @@
         <remote-mappings server-id="python@sftp://hannan@zypern.dbs.ifi.lmu.de:22/mnt/data/hannan/miniconda3/envs/contrastive/bin/python">
           <settings>
             <list>
-              <mapping local-root="$PROJECT_DIR$" remote-root="/mnt/data/hannan/gym_example" />
+              <mapping local-root="$PROJECT_DIR$" remote-root="/mnt/data/hannan/gym2/gym_example" />
             </list>
           </settings>
         </remote-mappings>

@@ -151,26 +151,25 @@ def visualize(agents):
 
     
 if __name__ == '__main__':
-    for material in ['B120BP', 'B120', 'Q120', 'TA2J6500', 'Q115', 'Q2100H', 'Q3015']:
-        print(material)
-        for mood in ['test', 'train']:
-            output_dir_logger = f'output/benchmarks_{mood}'
-            logger = Logger(path=output_dir_logger, comment=None, verbosity='DEBUG', experiment_name=f'benchmark_{mood}')
+    threshold = {'B120': 12593,
+                 'B120BP': 34371,
+                 'Q115': 45616,
+                 'Q120': 145850,
+                 'Q2100H': 1931,
+                 'Q3015': 1020,
+                 'TA2J6500': 1481}
+
+    for mood in ['train', 'test']:
+        output_dir_logger = f'output_test/benchmarks_{mood}'
+        logger = Logger(path=output_dir_logger, comment=None, verbosity='DEBUG', experiment_name=f'benchmark_{mood}')
+        for material in ['Q115', 'B120BP', 'B120', 'Q120', 'TA2J6500', 'Q2100H', 'Q3015']:
+            total_reward = []
             # q115_test = pd.read_csv(f"Data/Preprocessing/{mood}_q115.csv")
             # mat_info_q115 = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
-
             mat_info = pd.read_csv("Data/Material_Information.csv", sep=";", index_col="Material")
-            mat_info = mat_info.loc[[material]]
             hist_data = pd.read_csv(f"Data/Preprocessing/{mood}.csv")
+            mat_info = mat_info.loc[[material]]
             hist_data = hist_data[[material]]
-
-            threshold = {'B120': 12593,
-                        'B120BP': 34371,
-                        'Q115': 45616,
-                        'Q120': 145850,
-                        'Q2100H': 1931,
-                        'Q3015': 1020,
-                        'TA2J6500': 1481}
 
             Sebastians_model = SimulateBenchmark(hist_data, mat_info, [threshold[material]]) #hack
             stock_history, action_history, reward_history = Sebastians_model.simulate()
@@ -181,7 +180,6 @@ if __name__ == '__main__':
                 )
                 logger.add_scalar(
                     f'effective_action_{material}', action_history[0][i], i
-                    # TODO: remove hack
                 )
                 logger.add_scalar(
                     f'reward_{material}', reward_history[0][i], i
@@ -189,17 +187,6 @@ if __name__ == '__main__':
                 logger.add_scalar(
                     f'demand_{material}', hist_data.iloc[i, 0], i
                 )
-
-        print()
-    #     visualize(stock_history, action_history, reward_history)
-    #
-    #     output_dir = Path('../output/benchmark')
-    #     if not os.path.exists(output_dir):
-    #         os.makedirs(output_dir)
-    #     np.savetxt(f"{output_dir}/test_stats.txt", reward_history[0], delimiter=',')
-    #     np.savetxt(f"{output_dir}/test_actions.txt", action_history[0], delimiter=',')
-    #     np.savetxt(f"{output_dir}/test_storages.txt", stock_history[0], delimiter=',')
-
-    # agents = next(os.walk('../output'))[1]
-    # # visualize(['benchmark'])
-    # visualize(['benchmark', 'q_full', 'q_sine_past_demand_7', 'q_sine_3x', 'q_full_demand_satisfaction','q_sine_complex_model'])
+            print(material, mood, sum(reward_history[0]))
+            logger.add_scalar(f'total_reward_{material}', sum(reward_history[0]), 0)
+        logger.close()

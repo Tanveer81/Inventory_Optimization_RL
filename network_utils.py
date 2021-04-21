@@ -96,7 +96,6 @@ class MLP(nn.Module):
         This is a generic class for MLP.
         The architecture is customizable.
     """
-    # pylint: disable=too-many-arguments
     def __init__(self, input_dim: int, output_dim: int,
                  hidden_dim: list, activation: str, batch_norm: bool,
                  dropout: float = 0.0):

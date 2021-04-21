@@ -51,8 +51,8 @@ def run_one_episode (env, verbose=False):
         if verbose:
             print("action:", action)
 
-        state, reward, done = env.step(action, i)
-        sum_reward += reward[0]
+        state, reward, done, _ = env.step(action)
+        sum_reward += reward
 
         # if verbose:
         #     env.render()
@@ -98,7 +98,7 @@ if __name__ == '__main__':
               'noisy_demand': args.noisy_demand
               }
 
-    env = gym.make("stockManager-v0", **config)
+    env = gym.make("stockManager-v1", **config)
     sum_reward = run_one_episode(env, verbose=True)
 
     # next, calculate a baseline of rewards based on random actions

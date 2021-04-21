@@ -14,43 +14,44 @@ import gym_example
 
 
 def get_args_parser():
-    parser = argparse.ArgumentParser('Set transformer detector', add_help=False)
+    parser = argparse.ArgumentParser('Set environment and train-test configuration', add_help=False)
 
-    parser.add_argument('--experiment_name', default='dqn_demo', type=str)
-    parser.add_argument('--num_episodes', default=5000, type=int)
-    parser.add_argument('--seed', default=5214, type=int)
+    parser.add_argument('--experiment_name', default='dqn_demo', type=str, help="")
+    parser.add_argument('--num_episodes', default=5000, type=int, help="")
+    parser.add_argument('--seed', default=5214, type=int, help="")
     parser.add_argument('--output_dir', default='output', help='path where to save, empty for no saving')
-    parser.add_argument('--env', default='stockManager-v1', type=str, choices=('stockManager-v0', 'stockManager-v1'))
+    parser.add_argument('--env', default='stockManager-v1', type=str, choices=('stockManager-v0', 'stockManager-v1'), help="")
     # Training
-    parser.add_argument('--gamma', default=0.99, type=float)
-    parser.add_argument('--target_update', default=1000, type=int)
-    parser.add_argument('--learning_rate', default=2.5e-4, type=float)
-    parser.add_argument('--train', default=False, type=bool)
-    parser.add_argument('--test', default=False, type=bool)
-    parser.add_argument('--sinusoidal_demand', default=False, type=bool)
-    parser.add_argument('--sine_type', default=3, type=int)
-    parser.add_argument('--resume', default=False, type=bool)
-    parser.add_argument('--demand_satisfaction', default=False, type=bool)
-    parser.add_argument('--past_demand', default=3, type=int)
-    parser.add_argument('--noisy_demand', default=False, type=bool)
-    parser.add_argument("--hidden_layers", nargs="*", type=int, default=[256, 128])
-    parser.add_argument('--demand_embedding', default=3, type=int)
-    parser.add_argument('--hidden_dim_lstm', default=128, type=int)
-    parser.add_argument('--learn_every', default=4, type=int)
-    parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--buffer_size', default=int(1e7), type=int)
-    parser.add_argument('--tau', default=1e-3, type=float)
-    parser.add_argument('--opt_soft_update', default=False, type=bool)
-    parser.add_argument('--opt_ddqn', default=False, type=bool)
+    parser.add_argument('--gamma', default=0.99, type=float, help="discount factor")
+    parser.add_argument('--target_update', default=1000, type=int, help="")
+    parser.add_argument('--learning_rate', default=2.5e-4, type=float, help="")
+    parser.add_argument('--train', default=False, type=bool, help="")
+    parser.add_argument('--test', default=False, type=bool, help="")
+    parser.add_argument('--sinusoidal_demand', default=False, type=bool, help="")
+    parser.add_argument('--sine_type', default=3, type=int, help="")
+    parser.add_argument('--resume', default=False, type=bool, help="")
+    parser.add_argument('--demand_satisfaction', default=False, type=bool, help="")
+    parser.add_argument('--past_demand', default=3, type=int, help="")
+    parser.add_argument('--noisy_demand', default=False, type=bool, help="")
+    parser.add_argument("--hidden_layers", nargs="*", type=int, default=[256, 128], help="")
+    parser.add_argument('--demand_embedding', default=3, type=int, help="")
+    parser.add_argument('--hidden_dim_lstm', default=128, type=int, help="")
+    parser.add_argument('--learn_every', default=4, type=int, help="")
+    parser.add_argument('--batch_size', default=32, type=int, help="")
+    parser.add_argument('--buffer_size', default=int(1e7), type=int, help="")
+    parser.add_argument('--tau', default=1e-3, type=float, help="")
+    parser.add_argument('--opt_soft_update', default=False, type=bool, help="")
+    parser.add_argument('--opt_ddqn', default=False, type=bool, help="")
     parser.add_argument("--cuda_visible_device", nargs="*", type=int, default=None,
                         help="list of cuda visible devices")
-    parser.add_argument('--inventory_weight', default=1, type=int)
-    parser.add_argument('--stock_out_weight', default=1, type=int)
-    parser.add_argument('--hack_test', default=False, type=bool)
-    parser.add_argument('--hack_train', default=False, type=bool)
-    parser.add_argument('--evaluate_train', default=False, type=bool)
-    parser.add_argument('--material_name', default='Q115', type=str, choices= ['B120BP', 'B120', 'Q120', 'TA2J6500', 'Q115', 'Q2100H', 'Q3015'])
-
+    parser.add_argument('--inventory_weight', default=1, type=int, help="")
+    parser.add_argument('--stock_out_weight', default=1, type=int, help="")
+    parser.add_argument('--hack_test', default=False, type=bool, help="")
+    parser.add_argument('--hack_train', default=False, type=bool, help="")
+    parser.add_argument('--evaluate_train', default=False, type=bool, help="")
+    parser.add_argument('--material_name', default='Q115', type=str,
+                        choices= ['B120BP', 'B120', 'Q120', 'TA2J6500', 'Q115', 'Q2100H', 'Q3015'], help="")
+    parser.add_argument('--immediate_action_train', default=False, type=bool, help="")
     return parser
 
 
@@ -111,7 +112,7 @@ class CustomDQNAgent(DQNAgent):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('DETR training and evaluation script',
+    parser = argparse.ArgumentParser('Inventory Optimization Training and Testing Script',
                                      parents=[get_args_parser()])
     args = parser.parse_args()
     print(args)
@@ -120,6 +121,7 @@ if __name__ == '__main__':
 
     output_dir = output_dir_logger = args.output_dir + '/' + args.experiment_name
     if args.test and not args.train:
+        output_dir_logger = args.output_dir+'_test' + '/' + args.experiment_name
         name = '_hack_test' if args.hack_test else '_test'
         if args.evaluate_train:
             name = name + '_evaluate_train'
@@ -148,7 +150,8 @@ if __name__ == '__main__':
               'logger': logger,
               'inventory_weight': args.inventory_weight,
               'stock_out_weight': args.stock_out_weight,
-              'hack_train': args.hack_train
+              'hack_train': args.hack_train,
+              'immediate_action_train': args.immediate_action_train
               }
     if args.env == 'stockManager-v0':
         config.pop('inventory_weight', None)
@@ -168,7 +171,7 @@ if __name__ == '__main__':
                    'noisy_demand': args.noisy_demand,
                    'test': True,
                    'logger': logger,
-                   'hack_test': args.hack_test
+                   'hack_test': args.hack_test,
                    }
     if args.env == 'stockManager-v0':
         test_config.pop('hack_test', None)
@@ -177,8 +180,7 @@ if __name__ == '__main__':
     # if gpu is to be used
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f'device:{device}')
-    # Get number of actions from gym action space
-    # n_actions = env.action_space.n
+
 
     n_materials = 1
 
