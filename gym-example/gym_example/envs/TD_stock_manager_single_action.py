@@ -8,8 +8,8 @@ import pandas as pd
 
 class StockManagerSingleAction(gym.Env, ABC):
 
-    def __init__(self, hist_data=None, mat_info=None, random_reset=False, sinusoidal_demand=False,
-                 demand_satisfaction=False, past_demand=3, sine_type=3, noisy_demand=False,
+    def __init__(self, hist_data=None, mat_info=None, random_reset=False,
+                 past_demand=3,
                  test=False, logger=None, stock_out_weight=1, inventory_weight=1,
                  hack_train=False, hack_test=False, immediate_action_train=False):
 
@@ -20,11 +20,7 @@ class StockManagerSingleAction(gym.Env, ABC):
         self.hack_test = hack_test
         self.stock_out_weight = stock_out_weight
         self.inventory_weight = inventory_weight
-        self.noisy_demand = noisy_demand
-        self.sine_type = sine_type
         self.past_demand = past_demand
-        self.demand_sat = demand_satisfaction
-        self.sinusoidal_demand = sinusoidal_demand
         self.random_reset = random_reset
         if mat_info is None:
             mat_info = self.mat_info = pd.read_csv("Data/Material_Information_q115.csv", sep=";",
@@ -44,7 +40,6 @@ class StockManagerSingleAction(gym.Env, ABC):
 
         # initialize an empty Demand History (demand_history)
         self.monitor_timestep = [self.past_demand for _ in range(len(mat_info))]
-        self.demand_satisfaction = [0 for _ in range(len(mat_info))]
 
         # initialize current Stock Level (stock_level) : can be randomized
         if self.test:
@@ -93,8 +88,6 @@ class StockManagerSingleAction(gym.Env, ABC):
         self.action_space = gym.spaces.Discrete(2)
 
     def reward_for_one_inner_timestep(self, mat_i):
-
-        # demand_sat = self.demand_satisfaction[mat_i] if self.demand_sat else 0
         reward = self.stock_out_weight * self.stock_out_costs[mat_i] * min(0, self.stock_level[mat_i]) \
                  - self.inventory_weight * self.inv_costs[mat_i] * max(0, self.stock_level[mat_i])
 
@@ -198,7 +191,7 @@ class StockManagerSingleAction(gym.Env, ABC):
             else:
                 new_state[i][1] = abs(self.stock_level[i])
 
-            # add demand history?
+            # add demand history
             new_state[i].extend(self.history.iloc[self.monitor_timestep[i] - self.past_demand: self.monitor_timestep[i], i])
 
         return np.array(new_state)
@@ -224,12 +217,10 @@ class StockManagerSingleAction(gym.Env, ABC):
             past_demand = [
                 random.randint(self.past_demand, self.delivery_time[i] + self.past_demand)
                 for i in range(len(self.mat_info))]
-            self.demand_satisfaction = [0 for _ in range(len(self.mat_info))]
 
         else:
             # initialize an empty Demand History (demand_history)
             past_demand = [self.past_demand for _ in range(len(self.mat_info))]
-            self.demand_satisfaction = [0 for _ in range(len(self.mat_info))]
 
         # initialize current Stock Level (stock_level) : can be randomized
         if self.test:
