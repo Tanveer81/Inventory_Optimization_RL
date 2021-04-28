@@ -47,6 +47,8 @@ class SimulateBenchmark:
         self.stock_history = [[] for _ in range(len(self.mat_info))]
         self.action_history = [[0] * self.delivery_time[i] for i in range(len(mat_info))]
         self.reward_history = [[] for _ in range(len(self.mat_info))]
+        self.inventory_reward_history = [[] for _ in range(len(self.mat_info))]
+        self.stock_out_reward_history = [[] for _ in range(len(self.mat_info))]
 
     def register_action(self):
 
@@ -93,10 +95,13 @@ class SimulateBenchmark:
     def reward_function(self):
 
         for i in range(len(self.stock_level)):
-            reward = - self.inv_costs[i] * max(self.stock_level[i], 0) + \
-                     self.stock_out_costs[i] * min(self.stock_level[i], 0) # + self.demand_satisfaction[i]
+            inventory_reward = - self.inv_costs[i] * max(self.stock_level[i], 0)
+            stock_out_reward = self.stock_out_costs[i] * min(self.stock_level[i], 0)
+            reward = inventory_reward + stock_out_reward
 
             self.reward_history[i].append(reward)
+            self.inventory_reward_history[i].append(inventory_reward)
+            self.stock_out_reward_history[i].append(stock_out_reward)
 
     def simulate(self):
 
@@ -107,47 +112,7 @@ class SimulateBenchmark:
             self.update_stock_level(current_demand)
             self.reward_function()
 
-        return self.stock_history, self.action_history, self.reward_history
-
-def visualize(agents):
-    actions = []
-    rewards = []
-    stocks = []
-    for agent in agents:
-        try:
-            with open(f'../output/{agent}/test_actions.txt') as f:
-                actions.append([float(line.rstrip()) for line in f])
-            with open(f'../output/{agent}/test_stats.txt') as f:
-                rewards.append([float(line.rstrip()) for line in f])
-            with open(f'../output/{agent}/test_storages.txt') as f:
-                stocks.append([float(line.rstrip()) for line in f])
-        except:
-            print(f'{agent} results not present')
-            agents.remove(agent)
-    for reward in rewards:
-        plt.plot(reward)
-    plt.legend(agents, loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.title("Reward for model")
-    plt.xlabel("time steps")
-    plt.ylabel("reward")
-    plt.show()
-
-    markers_on = []
-    for action in actions:
-        effective_actions = action[0:-12]
-        markers = []
-        for i in range(len(effective_actions)):
-            if effective_actions[i] == 1:
-                markers.append(i)
-        markers_on.append(markers)
-
-    for stock, marker in zip(stocks, markers_on):
-        plt.plot(stock, '-d', markevery=marker)
-    plt.legend(agents, loc='center left', bbox_to_anchor=(1, 0.5))
-    plt.title("Stock Levels for Sebastian's model")
-    plt.xlabel("time steps")
-    plt.ylabel("stock level")
-    plt.show()
+        return self.stock_history, self.action_history, self.reward_history, self.inventory_reward_history, self.stock_out_reward_history
 
     
 if __name__ == '__main__':
@@ -172,7 +137,7 @@ if __name__ == '__main__':
             hist_data = hist_data[[material]]
 
             Sebastians_model = SimulateBenchmark(hist_data, mat_info, [threshold[material]]) #hack
-            stock_history, action_history, reward_history = Sebastians_model.simulate()
+            stock_history, action_history, reward_history, inventory_reward_history, stock_out_reward_history = Sebastians_model.simulate()
 
             for i in range(hist_data.size):
                 logger.add_scalar(
@@ -189,4 +154,7 @@ if __name__ == '__main__':
                 )
             print(material, mood, sum(reward_history[0]))
             logger.add_scalar(f'total_reward_{material}', sum(reward_history[0]), 0)
+            logger.add_scalar(f'total_stock_out_reward_{material}', sum(stock_out_reward_history[0]), 0)
+            logger.add_scalar(f'total_inventory_reward_{material}', sum(inventory_reward_history[0]), 0)
+
         logger.close()

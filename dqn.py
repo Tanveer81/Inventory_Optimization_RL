@@ -69,7 +69,6 @@ class PolicyNetwork(nn.Module):
         x = self.mlp(hidden_features)
         return x
 
-
 class CustomGymEnvironment(GymEnvironment):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -137,11 +136,7 @@ if __name__ == '__main__':
     config = {'hist_data': hist_data,
               'mat_info': mat_info,
               'random_reset': False,
-              'sinusoidal_demand': args.sinusoidal_demand,
-              'demand_satisfaction': args.demand_satisfaction,
               'past_demand': args.past_demand,
-              'sine_type': args.sine_type,
-              'noisy_demand': args.noisy_demand,
               'logger': logger,
               'inventory_weight': args.inventory_weight,
               'stock_out_weight': args.stock_out_weight,
@@ -159,11 +154,7 @@ if __name__ == '__main__':
     test_config = {'hist_data': hist_data if args.evaluate_train else test_data,
                    'mat_info': mat_info,
                    'random_reset': False,
-                   'sinusoidal_demand': args.sinusoidal_demand,
-                   'demand_satisfaction': args.demand_satisfaction,
                    'past_demand': args.past_demand,
-                   'sine_type': args.sine_type,
-                   'noisy_demand': args.noisy_demand,
                    'test': True,
                    'logger': logger,
                    'hack_test': args.hack_test,
