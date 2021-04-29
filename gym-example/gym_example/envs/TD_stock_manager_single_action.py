@@ -4,15 +4,16 @@ from abc import ABC
 import numpy as np
 import gym
 import pandas as pd
-
+from benchmarks import write_csv
 
 class StockManagerSingleAction(gym.Env, ABC):
 
-    def __init__(self, hist_data=None, mat_info=None, random_reset=False, past_demand=3,
+    def __init__(self, exp_name='dqn_demo', hist_data=None, mat_info=None, random_reset=False, past_demand=3,
                  test=False, logger=None, stock_out_weight=1, inventory_weight=1,
                  hack_train=False, hack_test=False, immediate_action_train=False):
 
         super(StockManagerSingleAction, self).__init__()
+        self.exp_name = exp_name
         self.immediate_action_train = immediate_action_train
         self.test = test
         self.hack_train = hack_train
@@ -23,7 +24,7 @@ class StockManagerSingleAction(gym.Env, ABC):
         self.random_reset = random_reset
 
         if mat_info is None:
-            mat_info = self.mat_info = pd.read_csv("Data/Material_Information_q115.csv", sep=";",                                        index_col="Material")
+            mat_info = self.mat_info = pd.read_csv("Data/Material_Information_q115.csv", sep=";", index_col="Material")
         else:
             self.mat_info = mat_info
 
@@ -136,9 +137,14 @@ class StockManagerSingleAction(gym.Env, ABC):
                 for j in range(self.monitor_timestep[i], len(self.history)):
                     self.write_log(actions, i, j, 0, rewards)
                 if self.logger:
-                    self.logger.add_scalar(f'total_reward_{self.history.columns[0]}', self.total_reward, 0)
-                    self.logger.add_scalar(f'total_stock_out_reward_{self.history.columns[0]}', self.stock_out_reward, 0)
-                    self.logger.add_scalar(f'total_inventory_reward_{self.history.columns[0]}', self.inventory_reward, 0)
+                    # self.logger.add_scalar(f'total_reward_{self.history.columns[0]}', self.total_reward, 0)
+                    # self.logger.add_scalar(f'total_stock_out_reward_{self.history.columns[0]}', self.stock_out_reward, 0)
+                    # self.logger.add_scalar(f'total_inventory_reward_{self.history.columns[0]}', self.inventory_reward, 0)
+                    mood = 'test' if self.test else 'train'
+                    write_csv([f'{self.exp_name}_{mood}', f'total_reward_{self.history.columns[0]}', self.total_reward])
+                    write_csv([f'{self.exp_name}_{mood}', f'total_stock_out_reward_{self.history.columns[0]}',self.stock_out_reward])
+                    write_csv([f'{self.exp_name}_{mood}', f'total_inventory_reward_{self.history.columns[0]}',self.inventory_reward])
+
                 done = True
                 break
             else:

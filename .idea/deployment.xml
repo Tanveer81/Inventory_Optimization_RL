@@ -5,7 +5,7 @@
       <paths name="hannan@zypern.dbs.ifi.lmu.de:22 password">
         <serverdata>
           <mappings>
-            <mapping deploy="/mnt/data/hannan/gym2/gym_example" local="$PROJECT_DIR$" />
+            <mapping deploy="/mnt/data/hannan/gym3/Inventory_Optimization_RL" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
@@ -13,6 +13,13 @@
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="hannan@zypern.dbs.ifi.lmu.de:22 password (2)">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/mnt/data/hannan/gym3/Inventory_Optimization_RL" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
@@ -24,6 +31,41 @@
         </serverdata>
       </paths>
       <paths name="koner@iona.dbs.ifi.lmu.de:22 password">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="koner@iona.dbs.ifi.lmu.de:22 password (1)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="koner@iona.dbs.ifi.lmu.de:22 password (2)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="koner@iona.dbs.ifi.lmu.de:22 password (3)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="koner@iona.dbs.ifi.lmu.de:22 password (4)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="koner@iona.dbs.ifi.lmu.de:22 password (5)">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />
@@ -52,6 +94,27 @@
         </serverdata>
       </paths>
       <paths name="koner@zypern.dbs.ifi.lmu.de:22 password">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="koner@zypern.dbs.ifi.lmu.de:22 password (1)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="koner@zypern.dbs.ifi.lmu.de:22 password (2)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="koner@zypern.dbs.ifi.lmu.de:22 password (3)">
         <serverdata>
           <mappings>
             <mapping local="$PROJECT_DIR$" web="/" />

@@ -1,5 +1,6 @@
 #!/bin/sh
 # script containing testing commands
+rm -r output_test/total_rewards.csv
 python benchmarks.py
 for material in 'Q115' 'B120BP' 'B120' 'Q120' 'TA2J6500' 'Q2100H' 'Q3015'
 do

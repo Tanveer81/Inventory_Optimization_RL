@@ -133,7 +133,8 @@ if __name__ == '__main__':
     logger = Logger(path=output_dir_logger, comment=None, verbosity='DEBUG',
                     experiment_name=args.experiment_name)
 
-    config = {'hist_data': hist_data,
+    config = {'exp_name': name,
+              'hist_data': hist_data,
               'mat_info': mat_info,
               'random_reset': False,
               'past_demand': args.past_demand,
@@ -147,11 +148,13 @@ if __name__ == '__main__':
         config.pop('inventory_weight', None)
         config.pop('stock_out_weight', None)
         config.pop('hack_train', None)
+        config.pop('exp_name', None)
     env = gym.make(args.env, **config)
 
     test_data = pd.read_csv("Data/Preprocessing/test.csv")
     test_data = test_data[[args.material_name]]
-    test_config = {'hist_data': hist_data if args.evaluate_train else test_data,
+    test_config = {'exp_name': name,
+                   'hist_data': hist_data if args.evaluate_train else test_data,
                    'mat_info': mat_info,
                    'random_reset': False,
                    'past_demand': args.past_demand,
@@ -161,6 +164,7 @@ if __name__ == '__main__':
                    }
     if args.env == 'stockManager-v0':
         test_config.pop('hack_test', None)
+        test_config.pop('exp_name', None)
     test_env = gym.make(args.env, **test_config)
 
     # if gpu is to be used
@@ -233,3 +237,5 @@ if __name__ == '__main__':
                                       logger=logger,
                                       gifs_recorder=None)
         e_test.test(num_episodes=1, load_state_dicts=True, render=True)
+
+    logger.close()

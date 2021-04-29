@@ -1,30 +1,13 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-from pathlib import Path
-import os
-import numpy as np
 from rlib.shared.utils import Logger
 
-def visualize(stocks, actions, rewards):
+import csv
 
-    plt.plot(rewards[0])
-    plt.title("Reward for model")
-    plt.xlabel("time steps")
-    plt.ylabel("reward")
-    plt.show()
-
-    effective_actions = actions[0][0:-12]
-    markers_on = []
-    for i in range(len(effective_actions)):
-        if effective_actions[i] == 1:
-            markers_on.append(i)
-
-    plt.plot(stocks[0], '-d', markevery=markers_on)
-    plt.title("Stock Levels for Sebastian's model")
-    plt.xlabel("time steps")
-    plt.ylabel("stock level")
-    plt.show()
-
+def write_csv(data):
+    with open('output_test/total_rewards.csv', 'a') as outfile:
+        writer = csv.writer(outfile)
+        writer.writerow(data)
 
 class SimulateBenchmark:
 
@@ -153,8 +136,12 @@ if __name__ == '__main__':
                     f'demand_{material}', hist_data.iloc[i, 0], i
                 )
             print(material, mood, sum(reward_history[0]))
-            logger.add_scalar(f'total_reward_{material}', sum(reward_history[0]), 0)
-            logger.add_scalar(f'total_stock_out_reward_{material}', sum(stock_out_reward_history[0]), 0)
-            logger.add_scalar(f'total_inventory_reward_{material}', sum(inventory_reward_history[0]), 0)
+            # logger.add_scalar(f'total_reward_{material}', sum(reward_history[0]), 0)
+            # logger.add_scalar(f'total_stock_out_reward_{material}', sum(stock_out_reward_history[0]), 0)
+            # logger.add_scalar(f'total_inventory_reward_{material}', sum(inventory_reward_history[0]), 0)
+
+            write_csv([f'benchmarks_{mood}', f'total_reward_{material}', sum(reward_history[0])])
+            write_csv([f'benchmarks_{mood}', f'total_stock_out_reward_{material}', sum(stock_out_reward_history[0])])
+            write_csv([f'benchmarks_{mood}', f'total_inventory_reward_{material}', sum(inventory_reward_history[0])])
 
         logger.close()

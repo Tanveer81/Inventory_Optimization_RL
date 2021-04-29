@@ -7,4 +7,4 @@ rlib==0.0.2
 imageio==2.9.0
 tensorboardX==2.1
 matplotlib==3.3.3
-progressbar==3.53.1
+progressbar
