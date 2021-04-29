@@ -137,13 +137,7 @@ class StockManagerSingleAction(gym.Env, ABC):
                 for j in range(self.monitor_timestep[i], len(self.history)):
                     self.write_log(actions, i, j, 0, rewards)
                 if self.logger:
-                    # self.logger.add_scalar(f'total_reward_{self.history.columns[0]}', self.total_reward, 0)
-                    # self.logger.add_scalar(f'total_stock_out_reward_{self.history.columns[0]}', self.stock_out_reward, 0)
-                    # self.logger.add_scalar(f'total_inventory_reward_{self.history.columns[0]}', self.inventory_reward, 0)
-                    mood = 'test' if self.test else 'train'
-                    write_csv([f'{self.exp_name}_{mood}', f'total_reward_{self.history.columns[0]}', self.total_reward])
-                    write_csv([f'{self.exp_name}_{mood}', f'total_stock_out_reward_{self.history.columns[0]}',self.stock_out_reward])
-                    write_csv([f'{self.exp_name}_{mood}', f'total_inventory_reward_{self.history.columns[0]}',self.inventory_reward])
+                    write_csv([self.exp_name, self.history.columns[0], self.total_reward, self.stock_out_reward, self.inventory_reward])
 
                 done = True
                 break

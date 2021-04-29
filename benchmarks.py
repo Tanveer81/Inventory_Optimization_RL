@@ -136,12 +136,6 @@ if __name__ == '__main__':
                     f'demand_{material}', hist_data.iloc[i, 0], i
                 )
             print(material, mood, sum(reward_history[0]))
-            # logger.add_scalar(f'total_reward_{material}', sum(reward_history[0]), 0)
-            # logger.add_scalar(f'total_stock_out_reward_{material}', sum(stock_out_reward_history[0]), 0)
-            # logger.add_scalar(f'total_inventory_reward_{material}', sum(inventory_reward_history[0]), 0)
-
-            write_csv([f'benchmarks_{mood}', f'total_reward_{material}', sum(reward_history[0])])
-            write_csv([f'benchmarks_{mood}', f'total_stock_out_reward_{material}', sum(stock_out_reward_history[0])])
-            write_csv([f'benchmarks_{mood}', f'total_inventory_reward_{material}', sum(inventory_reward_history[0])])
+            write_csv([f'benchmarks_{mood}', material, sum(reward_history[0]), sum(stock_out_reward_history[0]), sum(inventory_reward_history[0])])
 
         logger.close()

@@ -133,7 +133,7 @@ if __name__ == '__main__':
     logger = Logger(path=output_dir_logger, comment=None, verbosity='DEBUG',
                     experiment_name=args.experiment_name)
 
-    config = {'exp_name': args.experiment_name,
+    config = {'exp_name': args.experiment_name + '_train' if args.evaluate_train else '_test',
               'hist_data': hist_data,
               'mat_info': mat_info,
               'random_reset': False,
@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
     test_data = pd.read_csv("Data/Preprocessing/test.csv")
     test_data = test_data[[args.material_name]]
-    test_config = {'exp_name': args.experiment_name,
+    test_config = {'exp_name': args.experiment_name + ('_train' if args.evaluate_train else '_test'),
                    'hist_data': hist_data if args.evaluate_train else test_data,
                    'mat_info': mat_info,
                    'random_reset': False,
