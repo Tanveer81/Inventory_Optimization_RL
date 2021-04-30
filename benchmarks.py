@@ -127,7 +127,7 @@ if __name__ == '__main__':
                     f'stock_level_{material}', stock_history[0][i], i
                 )
                 logger.add_scalar(
-                    f'effective_action_{material}', action_history[0][i], i
+                    f'effective_action_{material}', action_history[0][i], i-Sebastians_model.delivery_time[0]
                 )
                 logger.add_scalar(
                     f'reward_{material}', reward_history[0][i], i
